@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="pt-br">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Resultados do Quiz</title>
+    <link rel="stylesheet" href="/static/css/result.css" />
+  </head>
+  <body>
+    <div class="container">
+      <h1>Resultado</h1>
+
+      <div class="score-display">
+        <p>Sua Pontuação:</p>
+        <div class="score-number">{{score}}/{{total}}</div>
+        <div class="score-percentage">{{(score/total*100)|round|int}}%</div>
+      </div>
+
+      <p class="message">
+        {% if (score/total) >= 0.8 %}
+        <span class="excellent">Excelente! 🎉</span> Você acertou uma ótima
+        pontuação! {% elif (score/total) >= 0.6 %}
+        <span class="good">Bom desempenho! 👍</span> Continue estudando para
+        melhorar. {% else %}
+        <span class="needs-improvement">Continue praticando! 💪</span> Você vai
+        conseguir! {% endif %}
+      </p>
+
+      <a href="/">Voltar</a>
+    </div>
+  </body>
+</html>

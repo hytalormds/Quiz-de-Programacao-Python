@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="pt-br">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Responda As Perguntas</title>
+    <link rel="stylesheet" href="/static/css/quiz.css" />
+  </head>
+  <body>
+    <div class="container">
+      <h1>Responda As Perguntas</h1>
+      <div class="progress">
+        <span id="current-question">1</span> de
+        <span id="total-questions">{{total}}</span>
+      </div>
+
+      <div id="quiz-content">
+        <div class="question" id="question-container">
+          <p id="question-text"></p>
+          <div class="options" id="options-container"></div>
+          <button type="button" id="submit-btn" onclick="checkAnswer()">
+            Responder
+          </button>
+        </div>
+
+        <div id="feedback" style="display: none">
+          <div id="feedback-content"></div>
+          <button type="button" id="next-btn" onclick="nextQuestion()">
+            Próxima Pergunta
+          </button>
+        </div>
+      </div>
+
+      <div id="quiz-complete" style="display: none">
+        <h2>Quiz Completo!</h2>
+        <p>
+          Você respondeu todas as perguntas. Clique abaixo para ver seu
+          resultado.
+        </p>
+        <button type="button" onclick="seeResults()">
+          Ver Resultado Final
+        </button>
+      </div>
+    </div>
+
+    <script>
+      const questions = {{ questions|tojson }};
+      let currentQuestionIndex = 0;
+      let score = 0;
+
+      function loadQuestion() {
+        const question = questions[currentQuestionIndex];
+        document.getElementById("question-text").textContent = question.question;
+        document.getElementById("current-question").textContent = currentQuestionIndex + 1;
+
+        const optionsContainer = document.getElementById("options-container");
+        optionsContainer.innerHTML = "";
+
+        question.options.forEach((option) => {
+          const label = document.createElement("label");
+          label.className = "option";
+          label.innerHTML = `
+            <input type="radio" name="answer" value="${option}" />
+            <span>${option}</span>
+          `;
+          optionsContainer.appendChild(label);
+        });
+
+        document.getElementById("feedback").style.display = "none";
+        document.getElementById("question-container").style.display = "block";
+        document.getElementById("quiz-complete").style.display = "none";
+      }
+
+      function checkAnswer() {
+        const selected = document.querySelector('input[name="answer"]:checked');
+        if (!selected) {
+          alert("Por favor, selecione uma resposta!");
+          return;
+        }
+
+        const answer = selected.value;
+        const questionIndex = currentQuestionIndex;
+
+        fetch("/check-answer", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            question_index: questionIndex,
+            answer: answer,
+          }),
+        })
+          .then((response) => response.json())
+          .then((data) => {
+            showFeedback(data, answer);
+            if (data.correct) {
+              score++;
+            }
+          });
+      }
+
+      function showFeedback(data, userAnswer) {
+        const feedbackDiv = document.getElementById("feedback");
+        const feedbackContent = document.getElementById("feedback-content");
+
+        const isCorrect = data.correct;
+        const correctAnswer = data.correct_answer;
+        const explanation = data.explanation;
+
+        let html = `
+          <div class="feedback-box ${isCorrect ? 'correct' : 'incorrect'}">
+            <h3>${isCorrect ? '✅ Correto!' : '❌ Incorreto!'}</h3>
+            <p><strong>Sua resposta:</strong> ${userAnswer}</p>
+        `;
+
+        if (!isCorrect) {
+          html += `<p><strong>Resposta correta:</strong> ${correctAnswer}</p>`;
+        }
+
+        html += `<p><strong>Explicação:</strong> ${explanation}</p></div>`;
+
+        feedbackContent.innerHTML = html;
+        document.getElementById("question-container").style.display = "none";
+        feedbackDiv.style.display = "block";
+      }
+
+      function nextQuestion() {
+        currentQuestionIndex++;
+
+        if (currentQuestionIndex >= questions.length) {
+          document.getElementById("question-container").style.display = "none";
+          document.getElementById("feedback").style.display = "none";
+          document.getElementById("quiz-complete").style.display = "block";
+        } else {
+          loadQuestion();
+        }
+      }
+
+      function seeResults() {
+        window.location.href = `/results?score=${score}&total=${questions.length}`;
+      }
+
+      // Carregar primeira pergunta ao iniciar
+      loadQuestion();
+    </script>
+  </body>
+</html>
